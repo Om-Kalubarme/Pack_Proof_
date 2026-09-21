@@ -1,0 +1,221 @@
+{
+  "source_image": "D:\\ML_Project\\Inhance_image\\enhanced_pckt.jpg",
+  "annotated_image": "D:\\ML_Project\\runs\\predict\\result_enhanced_pckt.jpg",
+  "pdp_crop_image": "D:\\ML_Project\\runs\\predict\\pdp_crop_enhanced_pckt.jpg",
+  "mrp_zone_crop_image": "D:\\ML_Project\\runs\\predict\\mrp_crop_enhanced_pckt.jpg",
+  "color_palette_legend": {
+    "BARCODE": "BARCODE",
+    "MRP_BATCH": "MRP / BATCH / EXP",
+    "MARKETER": "MARKETED BY",
+    "MANUFACTURER": "MANUFACTURED AT",
+    "NUTRITION_USP": "NUTRITION / USP",
+    "WARNINGS": "WARNING / USAGE",
+    "GENERAL_INFO": "PACKAGING INFO"
+  },
+  "detections_summary": {
+    "total_clean_boxes": 15,
+    "barcode_boxes": 0,
+    "mrp_batch_boxes": 0,
+    "marketer_boxes": 3,
+    "manufacturer_boxes": 3,
+    "nutrition_boxes": 4,
+    "warnings_boxes": 5,
+    "general_boxes": 0
+  },
+  "boxes": [
+    {
+      "category": "MARKETER",
+      "box": [
+        343,
+        24,
+        798,
+        224
+      ],
+      "text": "ZZ have not = Toothache Period Pains Headache",
+      "conf": 1.0
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        315,
+        65,
+        379,
+        132
+      ],
+      "text": "For pain",
+      "conf": 0.701
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        353,
+        89,
+        468,
+        161
+      ],
+      "text": "Iwhen . Neuralgia",
+      "conf": 0.999
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        350,
+        147,
+        537,
+        233
+      ],
+      "text": "Rheumatic pains Migraine_",
+      "conf": 0.692
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        394,
+        212,
+        733,
+        264
+      ],
+      "text": "DIRECTIONS FOR USE",
+      "conf": 0.863
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        316,
+        243,
+        789,
+        322
+      ],
+      "text": "5ocioe a8riadrecatiotole wth a drink ofwater",
+      "conf": 0.012
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        306,
+        296,
+        477,
+        446
+      ],
+      "text": "E",
+      "conf": 0.933
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        502,
+        306,
+        745,
+        426
+      ],
+      "text": "Aublasergg ;1o 6 hours Mennecescaryery G hours 1",
+      "conf": 0.99
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        319,
+        420,
+        784,
+        462
+      ],
+      "text": "Not more than 8 tablets shoul be taken In 24 hours _",
+      "conf": 0.39
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        497,
+        444,
+        752,
+        540
+      ],
+      "text": "=",
+      "conf": 0.094
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        311,
+        447,
+        470,
+        530
+      ],
+      "text": "978,28",
+      "conf": 0.061
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        311,
+        518,
+        560,
+        623
+      ],
+      "text": "Serazyees (take for mote than",
+      "conf": 0.359
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        505,
+        527,
+        684,
+        568
+      ],
+      "text": "Not recommended",
+      "conf": 0.974
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        294,
+        553,
+        809,
+        1084
+      ],
+      "text": "E3 a tine: (more E EZZ3",
+      "conf": 0.949
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        326,
+        929,
+        594,
+        973
+      ],
+      "text": "~CONTAINS PARACETAMOL",
+      "conf": 0.785
+    }
+  ],
+  "categorized_zones": {
+    "BARCODES": [],
+    "MRP_BATCH_EXP_DETAILS": [],
+    "MARKETER_AND_FSSAI": [
+      "ZZ have not = Toothache Period Pains Headache",
+      "5ocioe a8riadrecatiotole wth a drink ofwater",
+      "Aublasergg ;1o 6 hours Mennecescaryery G hours 1"
+    ],
+    "MANUFACTURER_DETAILS": [
+      "Not more than 8 tablets shoul be taken In 24 hours _",
+      "=",
+      "E3 a tine: (more E EZZ3"
+    ],
+    "NUTRITION_FACTS_AND_USP": [
+      "For pain",
+      "Iwhen . Neuralgia",
+      "Rheumatic pains Migraine_",
+      "E"
+    ],
+    "WARNINGS_AND_DIRECTIONS": [
+      "DIRECTIONS FOR USE",
+      "978,28",
+      "Serazyees (take for mote than",
+      "Not recommended",
+      "~CONTAINS PARACETAMOL"
+    ],
+    "OTHER_LABELS": []
+  },
+  "qwen_7b_prompt": "<|im_start|>system\nYou are an expert packaging intelligence system specialized in regulatory compliance, FSSAI, FDA, and FMCG packaging standards.\nExtract structured product metadata strictly from the provided packaging OCR text and return a valid JSON object.\n<|im_end|>\n<|im_start|>user\nExtract all mandatory and optional packaging fields from this product packaging label.\n\n[DETECTED BARCODE]: Inspect from image / text\n\n[PACKAGING TEXT BY CATEGORY]:\n• MRP, PRICE, BATCH & DATES:\n  \n\n• MARKETER & CORPORATE DETAILS:\n    - ZZ have not = Toothache Period Pains Headache\n  - 5ocioe a8riadrecatiotole wth a drink ofwater\n  - Aublasergg ;1o 6 hours Mennecescaryery G hours 1\n\n• MANUFACTURER & PACKER DETAILS:\n    - Not more than 8 tablets shoul be taken In 24 hours _\n  - =\n  - E3 a tine: (more E EZZ3\n\n• NUTRITION FACTS, INGREDIENTS & USP:\n    - For pain\n  - Iwhen . Neuralgia\n  - Rheumatic pains Migraine_\n  - E\n\n• STATUTORY WARNINGS & USAGE DIRECTIONS:\n    - DIRECTIONS FOR USE\n  - 978,28\n  - Serazyees (take for mote than\n  - Not recommended\n  - ~CONTAINS PARACETAMOL\n\n• GENERAL PACKAGING LABELS:\n  \n\nFormat your output STRICTLY as a valid JSON object adhering to this schema (fill every found field, use null if absent):\n{\n  \"brand_name\": \"string or null\",\n  \"product_name\": \"string or null\",\n  \"variant_flavor\": \"string or null\",\n  \"net_quantity\": \"string or null (e.g. 500g, 1L, 100 tablets)\",\n  \"serving_size\": \"string or null\",\n  \"mrp_price\": \"string or null (e.g. Rs. 549.00)\",\n  \"unit_sale_price_usp\": \"string or null\",\n  \"manufacturing_date\": \"string or null (MFG date)\",\n  \"expiry_best_before\": \"string or null (EXP / Best Before)\",\n  \"batch_lot_number\": \"string or null\",\n  \"ingredients_list\": [\"ingredient 1\", \"ingredient 2\"],\n  \"nutritional_facts\": {\n    \"serving_size\": \"string or null\",\n    \"energy_kcal\": \"string or null\",\n    \"protein\": \"string or null\",\n    \"carbohydrates\": \"string or null\",\n    \"sugar\": \"string or null\",\n    \"fat\": \"string or null\",\n    \"key_active_compound\": \"string or null\"\n  },\n  \"manufacturer_details\": {\n    \"marketed_by\": \"string or null\",\n    \"manufactured_at\": \"string or null\",\n    \"fssai_license\": \"string or null\",\n    \"customer_care\": \"string or null\"\n  },\n  \"warnings_cautions\": \"string or null\",\n  \"barcode\": \"null\"\n}\n\nOutput ONLY the raw JSON without markdown backticks or commentary.\n<|im_end|>\n<|im_start|>assistant\n"
+}

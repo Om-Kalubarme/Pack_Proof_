@@ -1,0 +1,139 @@
+{
+  "source_image": "C:\\Users\\SHIVANI\\OneDrive\\Desktop\\img1bottle.jpeg",
+  "annotated_image": "D:\\ML_Project\\runs\\predict\\result_img1bottle.jpeg",
+  "pdp_crop_image": "D:\\ML_Project\\runs\\predict\\pdp_crop_img1bottle.jpeg",
+  "mrp_zone_crop_image": "D:\\ML_Project\\runs\\predict\\mrp_crop_img1bottle.jpeg",
+  "color_palette_legend": {
+    "BARCODE": "BARCODE",
+    "MRP_BATCH": "MRP / BATCH / EXP",
+    "MARKETER": "MARKETED BY",
+    "MANUFACTURER": "MANUFACTURED AT",
+    "NUTRITION_USP": "NUTRITION / USP",
+    "WARNINGS": "WARNING / USAGE",
+    "GENERAL_INFO": "PACKAGING INFO"
+  },
+  "detections_summary": {
+    "total_clean_boxes": 8,
+    "barcode_boxes": 2,
+    "mrp_batch_boxes": 1,
+    "marketer_boxes": 1,
+    "manufacturer_boxes": 1,
+    "nutrition_boxes": 1,
+    "warnings_boxes": 2,
+    "general_boxes": 0
+  },
+  "boxes": [
+    {
+      "category": "BARCODE",
+      "box": [
+        256,
+        204,
+        331,
+        239
+      ],
+      "text": "Barcode",
+      "conf": 0.8269090056419373
+    },
+    {
+      "category": "BARCODE",
+      "box": [
+        191,
+        224,
+        242,
+        324
+      ],
+      "text": "Barcode",
+      "conf": 0.7461212277412415
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        232,
+        99,
+        347,
+        210
+      ],
+      "text": "E2 E 5n",
+      "conf": 0.984
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        40,
+        103,
+        164,
+        258
+      ],
+      "text": "Frtoral INFoRMAtIOR _ Seeaoatan Soop lagl inintperserving Drrrekeetyurate 39 #tokts: Mone \"TRORMEDCMAL USE JuaunscreATINE",
+      "conf": 0.833
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        60,
+        216,
+        203,
+        428
+      ],
+      "text": "1 93 K F J n Lnot a ~chitaren 0 41nt2o",
+      "conf": 0.311
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        230,
+        230,
+        336,
+        407
+      ],
+      "text": "So8-hiw E EZ Eza L F 3 B Bvchho_ BrdtoeE Vd Dm",
+      "conf": 0.644
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        55,
+        252,
+        175,
+        340
+      ],
+      "text": "erlroun e M neatd [ A A I # Prnok_intended AaeUer prerentol cure Jns Io",
+      "conf": 0.112
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        232,
+        397,
+        271,
+        413
+      ],
+      "text": "{iout WS",
+      "conf": 0.032
+    }
+  ],
+  "categorized_zones": {
+    "BARCODES": [
+      "Barcode",
+      "Barcode"
+    ],
+    "MRP_BATCH_EXP_DETAILS": [
+      "{iout WS"
+    ],
+    "MARKETER_AND_FSSAI": [
+      "E2 E 5n"
+    ],
+    "MANUFACTURER_DETAILS": [
+      "So8-hiw E EZ Eza L F 3 B Bvchho_ BrdtoeE Vd Dm"
+    ],
+    "NUTRITION_FACTS_AND_USP": [
+      "Frtoral INFoRMAtIOR _ Seeaoatan Soop lagl inintperserving Drrrekeetyurate 39 #tokts: Mone \"TRORMEDCMAL USE JuaunscreATINE"
+    ],
+    "WARNINGS_AND_DIRECTIONS": [
+      "1 93 K F J n Lnot a ~chitaren 0 41nt2o",
+      "erlroun e M neatd [ A A I # Prnok_intended AaeUer prerentol cure Jns Io"
+    ],
+    "OTHER_LABELS": []
+  },
+  "qwen_7b_prompt": "<|im_start|>system\nYou are an expert packaging intelligence system specialized in regulatory compliance, FSSAI, FDA, and FMCG packaging standards.\nExtract structured product metadata strictly from the provided packaging OCR text and return a valid JSON object.\n<|im_end|>\n<|im_start|>user\nExtract all mandatory and optional packaging fields from this product packaging label.\n\n[DETECTED BARCODE]: Inspect from image / text\n\n[PACKAGING TEXT BY CATEGORY]:\n• MRP, PRICE, BATCH & DATES:\n    - {iout WS\n\n• MARKETER & CORPORATE DETAILS:\n    - E2 E 5n\n\n• MANUFACTURER & PACKER DETAILS:\n    - So8-hiw E EZ Eza L F 3 B Bvchho_ BrdtoeE Vd Dm\n\n• NUTRITION FACTS, INGREDIENTS & USP:\n    - Frtoral INFoRMAtIOR _ Seeaoatan Soop lagl inintperserving Drrrekeetyurate 39 #tokts: Mone \"TRORMEDCMAL USE JuaunscreATINE\n\n• STATUTORY WARNINGS & USAGE DIRECTIONS:\n    - 1 93 K F J n Lnot a ~chitaren 0 41nt2o\n  - erlroun e M neatd [ A A I # Prnok_intended AaeUer prerentol cure Jns Io\n\n• GENERAL PACKAGING LABELS:\n  \n\nFormat your output STRICTLY as a valid JSON object adhering to this schema (fill every found field, use null if absent):\n{\n  \"brand_name\": \"string or null\",\n  \"product_name\": \"string or null\",\n  \"variant_flavor\": \"string or null\",\n  \"net_quantity\": \"string or null (e.g. 500g, 1L, 100 tablets)\",\n  \"serving_size\": \"string or null\",\n  \"mrp_price\": \"string or null (e.g. Rs. 549.00)\",\n  \"unit_sale_price_usp\": \"string or null\",\n  \"manufacturing_date\": \"string or null (MFG date)\",\n  \"expiry_best_before\": \"string or null (EXP / Best Before)\",\n  \"batch_lot_number\": \"string or null\",\n  \"ingredients_list\": [\"ingredient 1\", \"ingredient 2\"],\n  \"nutritional_facts\": {\n    \"serving_size\": \"string or null\",\n    \"energy_kcal\": \"string or null\",\n    \"protein\": \"string or null\",\n    \"carbohydrates\": \"string or null\",\n    \"sugar\": \"string or null\",\n    \"fat\": \"string or null\",\n    \"key_active_compound\": \"string or null\"\n  },\n  \"manufacturer_details\": {\n    \"marketed_by\": \"string or null\",\n    \"manufactured_at\": \"string or null\",\n    \"fssai_license\": \"string or null\",\n    \"customer_care\": \"string or null\"\n  },\n  \"warnings_cautions\": \"string or null\",\n  \"barcode\": \"null\"\n}\n\nOutput ONLY the raw JSON without markdown backticks or commentary.\n<|im_end|>\n<|im_start|>assistant\n"
+}

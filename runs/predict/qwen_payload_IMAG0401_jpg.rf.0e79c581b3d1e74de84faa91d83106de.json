@@ -1,0 +1,33 @@
+{
+  "source_image": "D:\\ML_Project\\dataset\\images\\val\\IMAG0401_jpg.rf.0e79c581b3d1e74de84faa91d83106de.jpg",
+  "annotated_image": "D:\\ML_Project\\runs\\predict\\result_IMAG0401_jpg.rf.0e79c581b3d1e74de84faa91d83106de.jpg",
+  "pdp_crop_image": "D:\\ML_Project\\runs\\predict\\pdp_crop_IMAG0401_jpg.rf.0e79c581b3d1e74de84faa91d83106de.jpg",
+  "detections_summary": {
+    "barcodes_detected": 0,
+    "barcode_digits": null,
+    "pdp_detected": true,
+    "text_regions_count": 1
+  },
+  "barcode_boxes": [],
+  "pdp_box": [
+    235,
+    0,
+    604,
+    298
+  ],
+  "text_regions": [
+    {
+      "id": 1,
+      "text": "6",
+      "confidence": 0.539,
+      "box_coords": [
+        270,
+        94,
+        318,
+        156
+      ]
+    }
+  ],
+  "raw_ocr_text": "6",
+  "qwen_7b_prompt": "<|im_start|>system\nYou are an expert packaging intelligence system specialized in regulatory compliance, FSSAI, FDA, and FMCG packaging standards.\nExtract structured product metadata strictly from the provided packaging OCR text and return a valid JSON object.\n<|im_end|>\n<|im_start|>user\nExtract all mandatory and optional packaging fields from this Principal Display Panel (PDP) and packaging label.\n\n[BARCODE DIGITS]: Not detected / decode from image\n\n[OCR EXTRACTED TEXT BLOCKS]:\n\"\"\"\n6\n\"\"\"\n\nFormat your output STRICTLY as a valid JSON object adhering to the schema below. Use null if a field is absent:\n{\n  \"brand_name\": \"string or null\",\n  \"product_name\": \"string or null\",\n  \"variant_flavor\": \"string or null\",\n  \"net_quantity\": \"string or null (e.g. 250 g, 500 ml)\",\n  \"mrp_price\": \"string or null (e.g. Rs. 150)\",\n  \"manufacturing_date\": \"string or null (MFG date)\",\n  \"expiry_best_before\": \"string or null (EXP / Best Before)\",\n  \"batch_lot_number\": \"string or null\",\n  \"ingredients_list\": [\"ingredient 1\", \"ingredient 2\"],\n  \"nutritional_facts\": {\n    \"serving_size\": \"string or null\",\n    \"energy_kcal\": \"string or null\",\n    \"protein\": \"string or null\",\n    \"carbohydrates\": \"string or null\",\n    \"total_sugars\": \"string or null\",\n    \"added_sugars\": \"string or null\",\n    \"total_fat\": \"string or null\",\n    \"sodium\": \"string or null\"\n  },\n  \"manufacturer_details\": {\n    \"name\": \"string or null\",\n    \"address\": \"string or null\",\n    \"customer_care\": \"string or null\"\n  },\n  \"fssai_license_number\": \"string or null\",\n  \"barcode\": \"null\"\n}\n\nOutput ONLY the raw JSON without markdown backticks or commentary.\n<|im_end|>\n<|im_start|>assistant\n"
+}

@@ -1,0 +1,283 @@
+{
+  "source_image": "D:\\ML_Project\\Inhance_image\\enhanced_milk.jpg",
+  "annotated_image": "D:\\ML_Project\\runs\\predict\\result_enhanced_milk.jpg",
+  "pdp_crop_image": "D:\\ML_Project\\runs\\predict\\pdp_crop_enhanced_milk.jpg",
+  "mrp_zone_crop_image": "D:\\ML_Project\\runs\\predict\\mrp_crop_enhanced_milk.jpg",
+  "color_palette_legend": {
+    "BARCODE": "BARCODE",
+    "MRP_BATCH": "MRP / BATCH / EXP",
+    "MARKETER": "MARKETED BY",
+    "MANUFACTURER": "MANUFACTURED AT",
+    "NUTRITION_USP": "NUTRITION / USP",
+    "WARNINGS": "WARNING / USAGE",
+    "GENERAL_INFO": "PACKAGING INFO"
+  },
+  "detections_summary": {
+    "total_clean_boxes": 20,
+    "barcode_boxes": 2,
+    "mrp_batch_boxes": 5,
+    "marketer_boxes": 4,
+    "manufacturer_boxes": 3,
+    "nutrition_boxes": 2,
+    "warnings_boxes": 4,
+    "general_boxes": 0
+  },
+  "boxes": [
+    {
+      "category": "BARCODE",
+      "box": [
+        656,
+        204,
+        967,
+        362
+      ],
+      "text": "Barcode",
+      "conf": 0.40538910031318665
+    },
+    {
+      "category": "BARCODE",
+      "box": [
+        846,
+        676,
+        949,
+        745
+      ],
+      "text": "Barcode",
+      "conf": 0.9
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        764,
+        39,
+        964,
+        194
+      ],
+      "text": "50.} MaP:R 26 4",
+      "conf": 0.24
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        39,
+        50,
+        207,
+        106
+      ],
+      "text": "22-5-",
+      "conf": 0.141
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        672,
+        54,
+        849,
+        104
+      ],
+      "text": "Net Contenl :",
+      "conf": 0.815
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        48,
+        133,
+        188,
+        202
+      ],
+      "text": "2",
+      "conf": 0.916
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        738,
+        176,
+        911,
+        234
+      ],
+      "text": "(Inclusive of €",
+      "conf": 0.587
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        28,
+        187,
+        216,
+        408
+      ],
+      "text": "2 073 |",
+      "conf": 0.913
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        509,
+        187,
+        571,
+        236
+      ],
+      "text": "Fe",
+      "conf": 0.009
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        600,
+        254,
+        656,
+        432
+      ],
+      "text": "}",
+      "conf": 0.455
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        692,
+        356,
+        967,
+        654
+      ],
+      "text": "Keep Under Rel 1o0,24 E Fot Eskch Ka 0%u56768\"",
+      "conf": 0.921
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        267,
+        372,
+        312,
+        399
+      ],
+      "text": "3",
+      "conf": 0.023
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        622,
+        487,
+        718,
+        533
+      ],
+      "text": "Lc No.",
+      "conf": 0.384
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        156,
+        490,
+        408,
+        616
+      ],
+      "text": "Egzwe06",
+      "conf": 0.013
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        0,
+        640,
+        226,
+        957
+      ],
+      "text": "# AzFy",
+      "conf": 0.255
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        599,
+        682,
+        659,
+        844
+      ],
+      "text": "1",
+      "conf": 0.158
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        256,
+        730,
+        286,
+        756
+      ],
+      "text": "3",
+      "conf": 0.009
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        682,
+        792,
+        966,
+        864
+      ],
+      "text": "23A",
+      "conf": 0.009
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        649,
+        846,
+        893,
+        924
+      ],
+      "text": "#E=",
+      "conf": 0.062
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        942,
+        881,
+        982,
+        934
+      ],
+      "text": "3 4",
+      "conf": 0.993
+    }
+  ],
+  "categorized_zones": {
+    "BARCODES": [
+      "Barcode",
+      "Barcode"
+    ],
+    "MRP_BATCH_EXP_DETAILS": [
+      "22-5-",
+      "(Inclusive of €",
+      "1",
+      "23A",
+      "3 4"
+    ],
+    "MARKETER_AND_FSSAI": [
+      "50.} MaP:R 26 4",
+      "Net Contenl :",
+      "Fe",
+      "}"
+    ],
+    "MANUFACTURER_DETAILS": [
+      "Keep Under Rel 1o0,24 E Fot Eskch Ka 0%u56768\"",
+      "Lc No.",
+      "#E="
+    ],
+    "NUTRITION_FACTS_AND_USP": [
+      "2",
+      "2 073 |"
+    ],
+    "WARNINGS_AND_DIRECTIONS": [
+      "3",
+      "Egzwe06",
+      "# AzFy",
+      "3"
+    ],
+    "OTHER_LABELS": []
+  },
+  "qwen_7b_prompt": "<|im_start|>system\nYou are an expert packaging intelligence system specialized in regulatory compliance, FSSAI, FDA, and FMCG packaging standards.\nExtract structured product metadata strictly from the provided packaging OCR text and return a valid JSON object.\n<|im_end|>\n<|im_start|>user\nExtract all mandatory and optional packaging fields from this product packaging label.\n\n[DETECTED BARCODE]: Inspect from image / text\n\n[PACKAGING TEXT BY CATEGORY]:\n• MRP, PRICE, BATCH & DATES:\n    - 22-5-\n  - (Inclusive of €\n  - 1\n  - 23A\n  - 3 4\n\n• MARKETER & CORPORATE DETAILS:\n    - 50.} MaP:R 26 4\n  - Net Contenl :\n  - Fe\n  - }\n\n• MANUFACTURER & PACKER DETAILS:\n    - Keep Under Rel 1o0,24 E Fot Eskch Ka 0%u56768\"\n  - Lc No.\n  - #E=\n\n• NUTRITION FACTS, INGREDIENTS & USP:\n    - 2\n  - 2 073 |\n\n• STATUTORY WARNINGS & USAGE DIRECTIONS:\n    - 3\n  - Egzwe06\n  - # AzFy\n  - 3\n\n• GENERAL PACKAGING LABELS:\n  \n\nFormat your output STRICTLY as a valid JSON object adhering to this schema (fill every found field, use null if absent):\n{\n  \"brand_name\": \"string or null\",\n  \"product_name\": \"string or null\",\n  \"variant_flavor\": \"string or null\",\n  \"net_quantity\": \"string or null (e.g. 500g, 1L, 100 tablets)\",\n  \"serving_size\": \"string or null\",\n  \"mrp_price\": \"string or null (e.g. Rs. 549.00)\",\n  \"unit_sale_price_usp\": \"string or null\",\n  \"manufacturing_date\": \"string or null (MFG date)\",\n  \"expiry_best_before\": \"string or null (EXP / Best Before)\",\n  \"batch_lot_number\": \"string or null\",\n  \"ingredients_list\": [\"ingredient 1\", \"ingredient 2\"],\n  \"nutritional_facts\": {\n    \"serving_size\": \"string or null\",\n    \"energy_kcal\": \"string or null\",\n    \"protein\": \"string or null\",\n    \"carbohydrates\": \"string or null\",\n    \"sugar\": \"string or null\",\n    \"fat\": \"string or null\",\n    \"key_active_compound\": \"string or null\"\n  },\n  \"manufacturer_details\": {\n    \"marketed_by\": \"string or null\",\n    \"manufactured_at\": \"string or null\",\n    \"fssai_license\": \"string or null\",\n    \"customer_care\": \"string or null\"\n  },\n  \"warnings_cautions\": \"string or null\",\n  \"barcode\": \"null\"\n}\n\nOutput ONLY the raw JSON without markdown backticks or commentary.\n<|im_end|>\n<|im_start|>assistant\n"
+}

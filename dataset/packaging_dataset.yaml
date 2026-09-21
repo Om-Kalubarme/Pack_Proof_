@@ -1,0 +1,9 @@
+# Ultralytics YOLOv11 Dataset Configuration for Packaging PDP & Barcode Detection
+path: d:/ML_Project/dataset  # Dataset root directory
+train: images/train          # Train images (relative to path)
+val: images/val              # Validation images (relative to path)
+
+# Classes
+names:
+  0: pdp_panel               # Principal Display Panel box
+  1: barcode                 # Barcode bounding box

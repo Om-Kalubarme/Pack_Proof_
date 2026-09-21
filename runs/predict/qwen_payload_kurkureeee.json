@@ -1,0 +1,283 @@
+{
+  "source_image": "C:\\Users\\SHIVANI\\OneDrive\\Desktop\\kurkureeee.jpeg",
+  "annotated_image": "D:\\ML_Project\\runs\\predict\\result_kurkureeee.jpeg",
+  "pdp_crop_image": "D:\\ML_Project\\runs\\predict\\pdp_crop_kurkureeee.jpeg",
+  "mrp_zone_crop_image": "D:\\ML_Project\\runs\\predict\\mrp_crop_kurkureeee.jpeg",
+  "color_palette_legend": {
+    "BARCODE": "BARCODE",
+    "MRP_BATCH": "MRP / BATCH / EXP",
+    "MARKETER": "MARKETED BY",
+    "MANUFACTURER": "MANUFACTURED AT",
+    "NUTRITION_USP": "NUTRITION / USP",
+    "WARNINGS": "WARNING / USAGE",
+    "GENERAL_INFO": "PACKAGING INFO"
+  },
+  "detections_summary": {
+    "total_clean_boxes": 20,
+    "barcode_boxes": 1,
+    "mrp_batch_boxes": 4,
+    "marketer_boxes": 6,
+    "manufacturer_boxes": 5,
+    "nutrition_boxes": 1,
+    "warnings_boxes": 3,
+    "general_boxes": 0
+  },
+  "boxes": [
+    {
+      "category": "BARCODE",
+      "box": [
+        380,
+        1304,
+        547,
+        1372
+      ],
+      "text": "Barcode",
+      "conf": 0.47389817237854004
+    },
+    {
+      "category": "NUTRITION_USP",
+      "box": [
+        357,
+        84,
+        724,
+        346
+      ],
+      "text": "5 SGartioskt ora8gion(ap Kurkure isa 2 al 68 0 8 2 0 Iimm 192 m",
+      "conf": 0.988
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        1128,
+        92,
+        1162,
+        184
+      ],
+      "text": ")",
+      "conf": 0.77
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        866,
+        186,
+        1101,
+        336
+      ],
+      "text": "Masti ! 56 Ahamaal",
+      "conf": 0.727
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        1038,
+        186,
+        1119,
+        266
+      ],
+      "text": "bhara to",
+      "conf": 0.909
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        825,
+        197,
+        983,
+        271
+      ],
+      "text": "Kukue ka =",
+      "conf": 0.328
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        306,
+        290,
+        760,
+        1087
+      ],
+      "text": "1 B: EZ Se.",
+      "conf": 0.828
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        899,
+        396,
+        975,
+        479
+      ],
+      "text": "K",
+      "conf": 0.19
+    },
+    {
+      "category": "MARKETER",
+      "box": [
+        932,
+        494,
+        1069,
+        603
+      ],
+      "text": "Kurkure",
+      "conf": 0.908
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        772,
+        534,
+        911,
+        722
+      ],
+      "text": "1",
+      "conf": 0.839
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        957,
+        548,
+        1062,
+        611
+      ],
+      "text": "~MALALA Munch [",
+      "conf": 0.033
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        834,
+        754,
+        891,
+        782
+      ],
+      "text": "Snlriyo",
+      "conf": 0.006
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        916,
+        757,
+        1168,
+        857
+      ],
+      "text": "EZE",
+      "conf": 0.254
+    },
+    {
+      "category": "MANUFACTURER",
+      "box": [
+        782,
+        832,
+        1178,
+        1049
+      ],
+      "text": "7ie. Ez6",
+      "conf": 0.133
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        765,
+        994,
+        1196,
+        1340
+      ],
+      "text": "E Formoredetails visit facebook_com/korkore",
+      "conf": 0.396
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        465,
+        1038,
+        632,
+        1080
+      ],
+      "text": "(NCL: Of ALLTAXes)",
+      "conf": 0.112
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        366,
+        1110,
+        512,
+        1254
+      ],
+      "text": "NQTY:   1359 Aa8",
+      "conf": 0.6
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        355,
+        1270,
+        715,
+        1312
+      ],
+      "text": "\"BEST BEFORE FOURMONTHS from MANufacTure\"",
+      "conf": 0.093
+    },
+    {
+      "category": "MRP_BATCH",
+      "box": [
+        565,
+        1324,
+        662,
+        1374
+      ],
+      "text": "Korkure",
+      "conf": 0.199
+    },
+    {
+      "category": "WARNINGS",
+      "box": [
+        359,
+        1354,
+        556,
+        1390
+      ],
+      "text": "~8 \"9844944884+681",
+      "conf": 0.021
+    }
+  ],
+  "categorized_zones": {
+    "BARCODES": [
+      "Barcode"
+    ],
+    "MRP_BATCH_EXP_DETAILS": [
+      "E Formoredetails visit facebook_com/korkore",
+      "(NCL: Of ALLTAXes)",
+      "\"BEST BEFORE FOURMONTHS from MANufacTure\"",
+      "Korkure"
+    ],
+    "MARKETER_AND_FSSAI": [
+      ")",
+      "Masti ! 56 Ahamaal",
+      "bhara to",
+      "Kukue ka =",
+      "K",
+      "Kurkure"
+    ],
+    "MANUFACTURER_DETAILS": [
+      "1",
+      "~MALALA Munch [",
+      "Snlriyo",
+      "EZE",
+      "7ie. Ez6"
+    ],
+    "NUTRITION_FACTS_AND_USP": [
+      "5 SGartioskt ora8gion(ap Kurkure isa 2 al 68 0 8 2 0 Iimm 192 m"
+    ],
+    "WARNINGS_AND_DIRECTIONS": [
+      "1 B: EZ Se.",
+      "NQTY:   1359 Aa8",
+      "~8 \"9844944884+681"
+    ],
+    "OTHER_LABELS": []
+  },
+  "qwen_7b_prompt": "<|im_start|>system\nYou are an expert packaging intelligence system specialized in regulatory compliance, FSSAI, FDA, and FMCG packaging standards.\nExtract structured product metadata strictly from the provided packaging OCR text and return a valid JSON object.\n<|im_end|>\n<|im_start|>user\nExtract all mandatory and optional packaging fields from this product packaging label.\n\n[DETECTED BARCODE]: Inspect from image / text\n\n[PACKAGING TEXT BY CATEGORY]:\n• MRP, PRICE, BATCH & DATES:\n    - E Formoredetails visit facebook_com/korkore\n  - (NCL: Of ALLTAXes)\n  - \"BEST BEFORE FOURMONTHS from MANufacTure\"\n  - Korkure\n\n• MARKETER & CORPORATE DETAILS:\n    - )\n  - Masti ! 56 Ahamaal\n  - bhara to\n  - Kukue ka =\n  - K\n  - Kurkure\n\n• MANUFACTURER & PACKER DETAILS:\n    - 1\n  - ~MALALA Munch [\n  - Snlriyo\n  - EZE\n  - 7ie. Ez6\n\n• NUTRITION FACTS, INGREDIENTS & USP:\n    - 5 SGartioskt ora8gion(ap Kurkure isa 2 al 68 0 8 2 0 Iimm 192 m\n\n• STATUTORY WARNINGS & USAGE DIRECTIONS:\n    - 1 B: EZ Se.\n  - NQTY:   1359 Aa8\n  - ~8 \"9844944884+681\n\n• GENERAL PACKAGING LABELS:\n  \n\nFormat your output STRICTLY as a valid JSON object adhering to this schema (fill every found field, use null if absent):\n{\n  \"brand_name\": \"string or null\",\n  \"product_name\": \"string or null\",\n  \"variant_flavor\": \"string or null\",\n  \"net_quantity\": \"string or null (e.g. 500g, 1L, 100 tablets)\",\n  \"serving_size\": \"string or null\",\n  \"mrp_price\": \"string or null (e.g. Rs. 549.00)\",\n  \"unit_sale_price_usp\": \"string or null\",\n  \"manufacturing_date\": \"string or null (MFG date)\",\n  \"expiry_best_before\": \"string or null (EXP / Best Before)\",\n  \"batch_lot_number\": \"string or null\",\n  \"ingredients_list\": [\"ingredient 1\", \"ingredient 2\"],\n  \"nutritional_facts\": {\n    \"serving_size\": \"string or null\",\n    \"energy_kcal\": \"string or null\",\n    \"protein\": \"string or null\",\n    \"carbohydrates\": \"string or null\",\n    \"sugar\": \"string or null\",\n    \"fat\": \"string or null\",\n    \"key_active_compound\": \"string or null\"\n  },\n  \"manufacturer_details\": {\n    \"marketed_by\": \"string or null\",\n    \"manufactured_at\": \"string or null\",\n    \"fssai_license\": \"string or null\",\n    \"customer_care\": \"string or null\"\n  },\n  \"warnings_cautions\": \"string or null\",\n  \"barcode\": \"null\"\n}\n\nOutput ONLY the raw JSON without markdown backticks or commentary.\n<|im_end|>\n<|im_start|>assistant\n"
+}
