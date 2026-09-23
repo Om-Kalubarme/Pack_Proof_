@@ -1,0 +1,18 @@
+# Ignore runs and scratch directories which contain heavy output files
+runs/
+scratch/
+
+# Ignore python cache
+__pycache__/
+*.pyc
+
+# Ignore specific large media/output files
+Inhance_image/unwrapped_bottle.jpeg
+Inhance_image/Inhance_image/
+*.mp4
+
+# OS generated files
+.DS_Store
+
+frontend/build/
+frontend/.dart_tool/

@@ -14,24 +14,44 @@ Usage:
 import argparse
 import json
 from pathlib import Path
+import base64
 import urllib.request
 import urllib.error
+from typing import Iterable, Optional
 
-def call_ollama(prompt: str, model: str = "qwen2.5:7b", endpoint: str = "http://localhost:11434/api/generate") -> str:
-    """Calls local Ollama server running Qwen-7B."""
+def call_ollama(
+    prompt: str,
+    model: str = "qwen2.5:7b",
+    endpoint: str = "http://localhost:11434/api/generate",
+    image_paths: Optional[Iterable[str]] = None,
+) -> str:
+    """Call a local Ollama Qwen model, optionally with image frames.
+
+    Ollama's generate API expects base64-encoded images.  Supplying images is
+    supported by vision-capable tags such as ``qwen2.5vl:7b``; text-only Qwen
+    tags continue to work when ``image_paths`` is omitted.
+    """
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
-        "format": "json"
+        "format": "json",
+        "options": {"temperature": 0, "num_predict": 2048, "num_ctx": 16384},
     }
+    images = []
+    for image_path in image_paths or []:
+        path = Path(image_path)
+        if path.is_file():
+            images.append(base64.b64encode(path.read_bytes()).decode("ascii"))
+    if images:
+        payload["images"] = images
     req = urllib.request.Request(
         endpoint,
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"}
     )
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=120) as response:
             res = json.loads(response.read().decode("utf-8"))
             return res.get("response", "")
     except urllib.error.URLError as e:

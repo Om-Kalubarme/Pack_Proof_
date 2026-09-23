@@ -101,7 +101,8 @@ class PackagingEnhancer:
         toned_img = self.auto_adjust_brightness_and_contrast(clean_img)
 
         # Step 3: High-frequency text stroke sharpening
-        sharp_img = self.sharpen_text_strokes(toned_img, amount=1.2)
+        sharp_amount = 1.8 if self.scale > 1.5 else 1.2
+        sharp_img = self.sharpen_text_strokes(toned_img, amount=sharp_amount)
 
         # Step 4: Scale resolution for fine-print readability
         final_enhanced = self.upscale_resolution(sharp_img)

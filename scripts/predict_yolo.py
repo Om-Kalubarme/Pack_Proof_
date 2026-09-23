@@ -24,13 +24,40 @@ import re
 import cv2
 import numpy as np
 import torch
+import sys
+import random
+import os
+
+def enforce_strict_determinism(seed=42):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
+    # Force ONNX Runtime / Math single-threaded execution
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+
+enforce_strict_determinism(42)
+
+sys.path.append(str(Path(__file__).parent.parent))
+try:
+    from Inhance_image.enhancer import PackagingEnhancer
+except ImportError:
+    print("[-] Warning: Inhance_image.enhancer not found. Enhancer will be disabled.")
+    PackagingEnhancer = None
 
 _OCR_READER = None
 
 PALETTE = {
     "BARCODE": {
-        "color": (0, 255, 70),       # Vibrant Green
-        "bg_color": (0, 180, 50),
+        "color": (255, 255, 255),       # White (distinct from Veg Green)
+        "bg_color": (150, 150, 150),
         "label": "BARCODE"
     },
     "MRP_BATCH": {
@@ -81,7 +108,8 @@ KEYWORDS_MRP_BATCH = [
 KEYWORDS_MARKETER = [
     "marketed by", "marketed & distributed", "mktd by", "marketer",
     "customer care", "consumer care", "feedback", "suggestions",
-    "toll free", "helpline", "email:", "website:", "regd off", "corporate office"
+    "toll free", "helpline", "email:", "website:", "regd off", "corporate office",
+    "pepsico", "trademark", "visit ", "partnership", "www.", "pvt", "ltd", "holdings"
 ]
 
 KEYWORDS_MANUFACTURER = [
@@ -91,7 +119,7 @@ KEYWORDS_MANUFACTURER = [
 ]
 
 KEYWORDS_NUTRITION_USP = [
-    "nutrition", "supplement facts", "serving size", "servings per",
+    "nutrition", "nutritional", "supplement facts", "serving size", "servings per",
     "amount per", "energy", "calorie", "protein", "carbohydrate", "carb",
     "sugar", "added sugar", "fat", "saturated fat", "trans fat", "sodium",
     "cholesterol", "fiber", "vitamin", "mineral", "calcium", "iron", "creatine",
@@ -132,23 +160,74 @@ def decode_barcode_digits(image_bgr, bbox=None):
         pass
     return None, None
 
+def detect_dietary_logo(image_bgr):
+    """Detect Indian Veg/Non-Veg Logo using OpenCV color & shape analysis."""
+    hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+    
+    # Veg Logo (Green)
+    lower_green = np.array([35, 50, 50])
+    upper_green = np.array([85, 255, 255])
+    mask_green = cv2.inRange(hsv, lower_green, upper_green)
+    
+    # Non-Veg Logo (Red/Brown)
+    lower_red1 = np.array([0, 50, 50])
+    upper_red1 = np.array([20, 255, 255])
+    lower_red2 = np.array([160, 50, 50])
+    upper_red2 = np.array([180, 255, 255])
+    mask_nonveg = cv2.bitwise_or(cv2.inRange(hsv, lower_red1, upper_red1), cv2.inRange(hsv, lower_red2, upper_red2))
+    
+    def find_logo(mask, label):
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if hierarchy is None:
+            return None
+            
+        for i, cnt in enumerate(contours):
+            area = cv2.contourArea(cnt)
+            if 400 < area < 25000:
+                x, y, w, h = cv2.boundingRect(cnt)
+                aspect_ratio = float(w)/h
+                
+                # Check for square shape AND has a child contour (the inner dot)
+                has_child = hierarchy[0][i][2] != -1
+                if 0.85 <= aspect_ratio <= 1.15 and has_child:
+                    # Double check the child is roughly a circle (solid area)
+                    child_idx = hierarchy[0][i][2]
+                    child_area = cv2.contourArea(contours[child_idx])
+                    if child_area > area * 0.1: # Dot should be at least 10% of the box
+                        return {"type": label, "box": [x, y, x+w, y+h]}
+        return None
+
+    veg = find_logo(mask_green, "VEG")
+    if veg: return veg
+    
+    nonveg = find_logo(mask_nonveg, "NON_VEG")
+    if nonveg: return nonveg
+    
+    return None
+
 def classify_universal_semantics(text: str, bbox: list, img_w: int, img_h: int) -> str:
     """Universal rule-based semantic classifier that works on ANY product packaging."""
     t = text.lower()
 
-    # 1. Barcode text
-    if any(k in t for k in ["barcode", "ean", "upc", "ivm-", "389-"]) or re.search(r'^\d{8,14}$', t):
+    # 1. Barcode explicitly stated or purely digits (EAN/UPC-like, ignoring spaces/quotes)
+    t_digits = re.sub(r'\D', '', t)
+    clean_t = t.replace(" ", "").replace('"', '').replace("'", "")
+    if any(k in t for k in ["barcode", "ean", "upc", "ivm-", "389-"]) or (
+        8 <= len(t_digits) <= 14 and len(t_digits) >= len(clean_t) - 2):
         return "BARCODE"
 
-    # 2. Warnings, Usage Directions & Storage (checked before dates so 'shake well before use' is categorized correctly)
-    if any(k in t for k in KEYWORDS_WARNINGS) or "shak" in t or "direction" in t or "uso" in t or "use" in t:
+    # 2. Warnings, Usage Directions & Storage
+    if any(k in t for k in KEYWORDS_WARNINGS) or "shak" in t or "direction" in t or re.search(r'\buse\b', t) or re.search(r'\buso\b', t):
         return "WARNINGS"
 
     # 3. Price / Batch / Dates (highest priority for legal compliance)
     if any(k in t for k in KEYWORDS_MRP_BATCH) or REGEX_PRICE.search(t) or REGEX_BATCH.search(t) or REGEX_DATE.search(t):
         return "MRP_BATCH"
 
-    # 4. Marketer & Customer Care (check before general FSSAI)
+    # 4. Marketer & Customer Care
     if any(k in t for k in KEYWORDS_MARKETER) or "marketed" in t or "feedback" in t or "customer care" in t:
         return "MARKETER"
 
@@ -157,26 +236,13 @@ def classify_universal_semantics(text: str, bbox: list, img_w: int, img_h: int) 
         return "MANUFACTURER"
 
     # 6. Nutrition, Ingredients & USP
-    if any(k in t for k in KEYWORDS_NUTRITION_USP):
+    if any(k in t for k in KEYWORDS_NUTRITION_USP) or "nutri" in t or "wnforhauon" in t:
         return "NUTRITION_USP"
 
-    # Spatial Context Heuristic (require at least a digit or short matrix for MRP)
-    cx, cy = (bbox[0] + bbox[2]) / 2.0, (bbox[1] + bbox[3]) / 2.0
-    has_digit = any(c.isdigit() for c in t)
-    if cy > img_h * 0.70 and cx > img_w * 0.40 and has_digit and (bbox[2] - bbox[0]) < img_w * 0.40:
-        return "MRP_BATCH"
-    elif cy > img_h * 0.40 and cx <= img_w * 0.45:
-        return "WARNINGS"
-    elif cy <= img_h * 0.40 and cx <= img_w * 0.45:
-        return "NUTRITION_USP"
-    elif cx > img_w * 0.45 and cy < img_h * 0.38:
-        return "MARKETER"
-    elif cx > img_w * 0.45:
-        return "MANUFACTURER"
-
+    # Removed arbitrary spatial context heuristics!
     return "GENERAL_INFO"
 
-def merge_overlapping_boxes(boxes_with_data, iou_threshold=0.25):
+def merge_overlapping_boxes(boxes_with_data, iou_threshold=0.35):
     """Merges close / overlapping bounding boxes belonging to the same category."""
     if not boxes_with_data:
         return []
@@ -212,7 +278,7 @@ def merge_overlapping_boxes(boxes_with_data, iou_threshold=0.25):
                 min_area = min((cx2 - cx1) * (cy2 - cy1), (bx2 - bx1) * (by2 - by1))
 
                 is_overlap = (area_overlap / float(min_area + 1e-5)) > iou_threshold
-                is_line_adjacent = (abs(by1 - cy2) < 12 or abs(cy1 - by2) < 12) and x_overlap > 15
+                is_line_adjacent = (abs(by1 - cy2) < 6 or abs(cy1 - by2) < 6) and x_overlap > 25
 
                 if is_overlap or is_line_adjacent:
                     cur_box = [min(cx1, bx1), min(cy1, by1), max(cx2, bx2), max(cy2, by2)]
@@ -268,7 +334,7 @@ def draw_legend_header(img):
 def process_packaging_image(
     image_path: str,
     model_path: str = "models/yolo11_packaging.pt",
-    conf: float = 0.35,
+    conf: float = 0.20,
     output_dir: str = "runs/predict"
 ):
     img_path = Path(image_path)
@@ -284,8 +350,30 @@ def process_packaging_image(
         print(f"[-] Failed to read image: {image_path}")
         return None
 
-    h_img, w_img = image_bgr.shape[:2]
-    annotated_img = image_bgr.copy()
+    # Shrink massive phone images to speed up OCR and LLM processing
+    MAX_DIM = 1536
+    h_init, w_init = image_bgr.shape[:2]
+    if max(h_init, w_init) > MAX_DIM:
+        scale = MAX_DIM / max(h_init, w_init)
+        image_bgr = cv2.resize(image_bgr, (int(w_init * scale), int(h_init * scale)), interpolation=cv2.INTER_AREA)
+
+    # 0. Enhance Full Image First
+    if PackagingEnhancer:
+        print("[+] Enhancing full image before YOLO and OCR...")
+        h_orig, w_orig = image_bgr.shape[:2]
+        if max(h_orig, w_orig) <= 1280:
+            target_scale = 3.0
+            print(f"[*] Low resolution detected ({w_orig}x{h_orig}). Applying {target_scale}x Lanczos-4 upscaling for fine print...")
+        else:
+            target_scale = 1.0
+            
+        enhancer = PackagingEnhancer(target_dpi_scale=target_scale)
+        enhanced_image_bgr = enhancer.process(image_bgr)
+    else:
+        enhanced_image_bgr = image_bgr
+
+    h_img, w_img = enhanced_image_bgr.shape[:2]
+    annotated_img = enhanced_image_bgr.copy()
 
     # 1. Barcode Detection via fine-tuned YOLO & OpenCV
     from ultralytics import YOLO
@@ -295,19 +383,29 @@ def process_packaging_image(
 
     print(f"\n[1/4] Running YOLO barcode & packaging detection on: {img_path.name}")
     model = YOLO(model_path)
-    yolo_res = model.predict(source=image_bgr, conf=conf, verbose=False)[0]
+    yolo_res = model.predict(source=enhanced_image_bgr, conf=conf, verbose=False)[0]
 
     raw_barcodes = []
+    pdp_panels = []
     for box in yolo_res.boxes:
+        cls_id = int(box.cls[0].item())
+        cls_name = model.names.get(cls_id, f"class_{cls_id}").lower()
         score = float(box.conf[0].item())
         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-        # Filter out unrealistic full-frame boxes
-        if (x2 - x1) < w_img * 0.65 and (y2 - y1) < h_img * 0.65:
-            raw_barcodes.append({"box": [x1, y1, x2, y2], "conf": score})
+        
+        if "barcode" in cls_name:
+            if (x2 - x1) < w_img * 0.65 and (y2 - y1) < h_img * 0.65:
+                raw_barcodes.append({"box": [x1, y1, x2, y2], "conf": score})
+        elif "pdp" in cls_name or "panel" in cls_name:
+            if (x2 - x1) > (w_img * 0.1) and (y2 - y1) > (h_img * 0.1):
+                pdp_panels.append({"box": [x1, y1, x2, y2], "conf": score})
+            
+    # Sort PDP panels by area (largest first)
+    pdp_panels.sort(key=lambda p: (p["box"][2] - p["box"][0]) * (p["box"][3] - p["box"][1]), reverse=True)
 
     # OpenCV barcode detector fallback
     det = cv2.barcode.BarcodeDetector()
-    ok, corners = det.detect(image_bgr)
+    ok, corners = det.detect(enhanced_image_bgr)
     if ok and corners is not None and len(corners) > 0:
         for pts in corners:
             pts = pts.astype(int)
@@ -320,7 +418,7 @@ def process_packaging_image(
     barcode_boxes = []
     for bc in raw_barcodes:
         bx1, by1, bx2, by2 = bc["box"]
-        code, ctype = decode_barcode_digits(image_bgr, (bx1, by1, bx2, by2))
+        code, ctype = decode_barcode_digits(enhanced_image_bgr, (bx1, by1, bx2, by2))
         if code and not primary_barcode_val:
             primary_barcode_val = code
         barcode_boxes.append({
@@ -330,51 +428,105 @@ def process_packaging_image(
             "conf": bc["conf"]
         })
 
-    # 2. Multi-Scale Universal OCR Extraction
+    # Global Fallback if YOLO & Corner Detection failed entirely
+    if not barcode_boxes:
+        code, ctype = decode_barcode_digits(enhanced_image_bgr)
+        if code:
+            h, w = enhanced_image_bgr.shape[:2]
+            primary_barcode_val = code
+            barcode_boxes.append({
+                "category": "BARCODE",
+                "box": [10, h - 200, 300, h - 10], # Synthetic box for visualization
+                "text": str(code),
+                "conf": 1.0
+            })
+
+    # 1.5 Extract PDP Crop Regions
+    total_pdp_area = sum((p["box"][2] - p["box"][0]) * (p["box"][3] - p["box"][1]) for p in pdp_panels) if pdp_panels else 0
+    img_area = w_img * h_img
+    
+    if pdp_panels and total_pdp_area > img_area * 0.25:
+        panels_to_process = pdp_panels
+    else:
+        print("[!] YOLO PDP panels are missing or too small. Using full packaging area for OCR fallback.")
+        panels_to_process = [{"box": [0, 0, w_img, h_img], "conf": 1.0, "is_fallback": True}]
+
     print("[2/4] Running universal multi-scale OCR across packaging surface...")
     reader = get_ocr_reader()
-    
-    # Adaptive scaling: small images (<1200px) scaled up so 4px text becomes clear
-    scale_factor = 2.5 if max(h_img, w_img) < 1200 else 1.5
-    scaled = cv2.resize(image_bgr, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LANCZOS4)
-
-    ocr_raw = reader.readtext(
-        scaled,
-        text_threshold=0.15,
-        low_text=0.08,
-        link_threshold=0.15,
-        min_size=5
-    )
-
     detected_items = []
-    for polygon, text_val, text_conf in ocr_raw:
-        clean_text = text_val.strip()
-        if not clean_text:
+    first_pdp_crop = None
+
+    for idx, panel in enumerate(panels_to_process):
+        pdp_x1, pdp_y1, pdp_x2, pdp_y2 = panel["box"]
+        is_fallback = panel.get("is_fallback", False)
+        
+        if not is_fallback:
+            print(f"[*] Processing PDP Area {idx+1}/{len(panels_to_process)} located at ({pdp_x1}, {pdp_y1}, {pdp_x2}, {pdp_y2})")
+
+        # Draw Cyan / Electric Blue Box for PDP Area
+        cv2.rectangle(annotated_img, (pdp_x1, pdp_y1), (pdp_x2, pdp_y2), (255, 200, 0), 3)
+        pdp_label = f"PDP PANEL ({panel['conf']:.2f})" if not is_fallback else "PACKAGING REGION"
+        (pw, ph), _ = cv2.getTextSize(pdp_label, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)
+        cv2.rectangle(annotated_img, (pdp_x1, max(0, pdp_y1 - ph - 8)), (pdp_x1 + pw + 6, max(0, pdp_y1)), (255, 200, 0), -1)
+        cv2.putText(annotated_img, pdp_label, (pdp_x1 + 3, max(0, pdp_y1 - 4)), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 0), 2)
+
+        pdp_crop = enhanced_image_bgr[pdp_y1:pdp_y2, pdp_x1:pdp_x2]
+        if idx == 0:
+            first_pdp_crop = pdp_crop.copy()
+            
+        crop_h, crop_w = pdp_crop.shape[:2]
+        if crop_h == 0 or crop_w == 0:
             continue
+            
+        # Avoid double-scaling: PackagingEnhancer already handles upscaling if needed.
+        # Excessive scaling makes text too large/soft for EasyOCR's CNN.
+        scale_factor = 1.0
+        scaled = cv2.resize(pdp_crop, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LANCZOS4) if scale_factor != 1.0 else pdp_crop
 
-        poly_arr = np.array(polygon, dtype=np.float32) / scale_factor
-        gx1 = max(0, int(np.min(poly_arr[:, 0])))
-        gy1 = max(0, int(np.min(poly_arr[:, 1])))
-        gx2 = min(w_img, int(np.max(poly_arr[:, 0])))
-        gy2 = min(h_img, int(np.max(poly_arr[:, 1])))
+        ocr_raw = reader.readtext(
+            scaled,
+            text_threshold=0.45,
+            low_text=0.35,
+            link_threshold=0.30,
+            min_size=15
+        )
 
-        # Avoid drawing text boxes over barcode bars
-        in_barcode = False
-        for bc in barcode_boxes:
-            bx1, by1, bx2, by2 = bc["box"]
-            if gx1 >= bx1-5 and gy1 >= by1-5 and gx2 <= bx2+5 and gy2 <= by2+5:
-                in_barcode = True
-                break
-        if in_barcode:
-            continue
+        for polygon, text_val, text_conf in ocr_raw:
+            clean_text = text_val.strip()
+            if not clean_text:
+                continue
 
-        cat = classify_universal_semantics(clean_text, [gx1, gy1, gx2, gy2], w_img, h_img)
-        detected_items.append({
-            "category": cat,
-            "box": [gx1, gy1, gx2, gy2],
-            "text": clean_text,
-            "conf": round(float(text_conf), 3)
-        })
+            poly_arr = np.array(polygon, dtype=np.float32) / scale_factor
+            
+            # Local coordinates in crop
+            lx1 = max(0, int(np.min(poly_arr[:, 0])))
+            ly1 = max(0, int(np.min(poly_arr[:, 1])))
+            lx2 = min(crop_w, int(np.max(poly_arr[:, 0])))
+            ly2 = min(crop_h, int(np.max(poly_arr[:, 1])))
+            
+            # Global coordinates mapped back to full image
+            gx1 = pdp_x1 + lx1
+            gy1 = pdp_y1 + ly1
+            gx2 = pdp_x1 + lx2
+            gy2 = pdp_y1 + ly2
+
+            # Avoid drawing text boxes over barcode bars
+            in_barcode = False
+            for bc in barcode_boxes:
+                bx1, by1, bx2, by2 = bc["box"]
+                if gx1 >= bx1-5 and gy1 >= by1-5 and gx2 <= bx2+5 and gy2 <= by2+5:
+                    in_barcode = True
+                    break
+            if in_barcode:
+                continue
+
+            cat = classify_universal_semantics(clean_text, [gx1, gy1, gx2, gy2], w_img, h_img)
+            detected_items.append({
+                "category": cat,
+                "box": [gx1, gy1, gx2, gy2],
+                "text": clean_text,
+                "conf": round(float(text_conf), 3)
+            })
 
     # 3. Clean Box Merging
     print("[3/4] Merging text lines and applying color-accurate packaging annotations...")
@@ -398,13 +550,25 @@ def process_packaging_image(
 
     # 4. Save Vision-Language Crops (Qwen2-VL)
     crop_filename = out_dir / f"pdp_crop_{img_path.name}"
-    cv2.imwrite(str(crop_filename), image_bgr)
+    if first_pdp_crop is not None:
+        cv2.imwrite(str(crop_filename), first_pdp_crop)
 
     mrp_crop_y1, mrp_crop_y2 = int(h_img * 0.60), h_img
     mrp_crop_x1, mrp_crop_x2 = int(w_img * 0.35), w_img
-    mrp_crop_img = image_bgr[mrp_crop_y1:mrp_crop_y2, mrp_crop_x1:mrp_crop_x2]
+    mrp_crop_img = enhanced_image_bgr[mrp_crop_y1:mrp_crop_y2, mrp_crop_x1:mrp_crop_x2]
     mrp_crop_filename = out_dir / f"mrp_crop_{img_path.name}"
     cv2.imwrite(str(mrp_crop_filename), mrp_crop_img)
+
+    logo_info = detect_dietary_logo(enhanced_image_bgr)
+    if logo_info:
+        lx1, ly1, lx2, ly2 = logo_info["box"]
+        # Use Forest Green (34, 139, 34) in BGR -> (34, 139, 34) so it doesn't clash with Barcode (0, 255, 0)
+        l_color = (34, 139, 34) if logo_info["type"] == "VEG" else (0, 0, 255)
+        cv2.rectangle(annotated_img, (lx1, ly1), (lx2, ly2), l_color, 4)
+        cv2.putText(annotated_img, logo_info["type"] + " LOGO", (lx1, max(0, ly1-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, l_color, 3)
+
+    enhanced_save_path = out_dir / f"enhanced_{img_path.name}"
+    cv2.imwrite(str(enhanced_save_path), enhanced_image_bgr)
 
     annotated_save_path = out_dir / f"result_{img_path.name}"
     cv2.imwrite(str(annotated_save_path), annotated_img)
@@ -420,16 +584,63 @@ def process_packaging_image(
         "OTHER_LABELS": [it["text"] for it in clean_boxes if it["category"] == "GENERAL_INFO"]
     }
 
-    qwen_prompt = f"""<|im_start|>system
-You are an expert packaging intelligence system specialized in regulatory compliance, FSSAI, FDA, and FMCG packaging standards.
-Extract structured product metadata strictly from the provided packaging OCR text and return a valid JSON object.
-<|im_end|>
-<|im_start|>user
-Extract all mandatory and optional packaging fields from this product packaging label.
+    qwen_prompt = f"""# Role: Strict Packet Scanner & Declaration Generator
 
-[DETECTED BARCODE]: {primary_barcode_val or 'Inspect from image / text'}
+You are a high-accuracy packet/packaging analysis model. Your primary responsibility is to inspect the provided packet/package image and extract every visible and relevant detail accurately.
 
-[PACKAGING TEXT BY CATEGORY]:
+## 1. Scan Everything Before Responding
+Systematically inspect the entire packet. Scan specifically for small, partially hidden, or easily overlooked details.
+
+## 2. Accuracy Rules
+1. Never guess or invent information.
+2. Do not fill missing information using assumptions or general product knowledge.
+3. Preserve the text exactly where practical.
+4. Distinguish clearly between visible and unreadable.
+5. If an image is blurry or too low-resolution to verify a detail, explicitly mark that detail as "Unable to verify from image" in the `unable_to_verify` array.
+6. Never infer a declaration merely because it is common for similar products.
+7. If two visible pieces of information conflict, report the conflict in the `ambiguous_details` array.
+
+## 3. Do Not Hallucinate
+The following are prohibited: Inventing missing text, Guessing obscured characters, Assuming ingredients/allergens/certifications/values.
+
+## 4. Required Output Format
+You MUST output ONLY a valid JSON object. Do not output markdown text outside the JSON. Use the following schema:
+{{
+  "brand_name": "string or null",
+  "product_name": "string or null",
+  "net_quantity": "string or null",
+  "mrp_price": "string or null",
+  "manufacturing_date": "string or null",
+  "expiry_best_before": "string or null",
+  "batch_lot_number": "string or null",
+  "ingredients_list": ["ingredient 1", "ingredient 2"],
+  "nutritional_facts": {{
+    "serving_size": "string or null",
+    "energy_kcal": "string or null",
+    "protein": "string or null",
+    "carbohydrates": "string or null"
+  }},
+  "allergens": ["allergen 1"],
+  "storage_usage": "string or null",
+  "warnings_cautions": "string or null",
+  "certifications_symbols": ["symbol 1"],
+  "manufacturer_details": {{
+    "marketed_by": "string or null",
+    "manufactured_at": "string or null",
+    "fssai_license": "string or null",
+    "customer_care": "string or null"
+  }},
+  "barcode": "{primary_barcode_val or 'null'}",
+  "dietary_logo": "VEG or NON_VEG or null",
+  "detected_packaging_views": ["front_view", "back_view"],
+  "declarations": [
+    {{"text": "declaration text", "location": "front/back", "confidence": "High/Medium/Low"}}
+  ],
+  "unable_to_verify": ["list of details that could not be reliably read"],
+  "ambiguous_details": ["list of conflicting text"]
+}}
+
+[OCR TEXT HINTS (Use as reference, but trust your own vision)]:
 • MRP, PRICE, BATCH & DATES:
   {chr(10).join('  - ' + t for t in categorized_text['MRP_BATCH_EXP_DETAILS'])}
 
@@ -448,48 +659,21 @@ Extract all mandatory and optional packaging fields from this product packaging 
 • GENERAL PACKAGING LABELS:
   {chr(10).join('  - ' + t for t in categorized_text['OTHER_LABELS'])}
 
-Format your output STRICTLY as a valid JSON object adhering to this schema (fill every found field, use null if absent):
-{{
-  "brand_name": "string or null",
-  "product_name": "string or null",
-  "variant_flavor": "string or null",
-  "net_quantity": "string or null (e.g. 500g, 1L, 100 tablets)",
-  "serving_size": "string or null",
-  "mrp_price": "string or null (e.g. Rs. 549.00)",
-  "unit_sale_price_usp": "string or null",
-  "manufacturing_date": "string or null (MFG date)",
-  "expiry_best_before": "string or null (EXP / Best Before)",
-  "batch_lot_number": "string or null",
-  "ingredients_list": ["ingredient 1", "ingredient 2"],
-  "nutritional_facts": {{
-    "serving_size": "string or null",
-    "energy_kcal": "string or null",
-    "protein": "string or null",
-    "carbohydrates": "string or null",
-    "sugar": "string or null",
-    "fat": "string or null",
-    "key_active_compound": "string or null"
-  }},
-  "manufacturer_details": {{
-    "marketed_by": "string or null",
-    "manufactured_at": "string or null",
-    "fssai_license": "string or null",
-    "customer_care": "string or null"
-  }},
-  "warnings_cautions": "string or null",
-  "barcode": "{primary_barcode_val or 'null'}"
-}}
+Output ONLY the raw JSON without markdown backticks or commentary."""
 
-Output ONLY the raw JSON without markdown backticks or commentary.
-<|im_end|>
-<|im_start|>assistant
-"""
+    scale_px_per_mm = None
+    if barcode_boxes:
+        bc = barcode_boxes[0]["box"]
+        bc_width_px = bc[2] - bc[0]
+        scale_px_per_mm = round(bc_width_px / 37.29, 3)
 
     payload = {
         "source_image": str(img_path.resolve()),
+        "enhanced_image": str(enhanced_save_path.resolve()),
         "annotated_image": str(annotated_save_path.resolve()),
         "pdp_crop_image": str(crop_filename.resolve()),
         "mrp_zone_crop_image": str(mrp_crop_filename.resolve()),
+        "scale_px_per_mm": scale_px_per_mm,
         "color_palette_legend": {k: v["label"] for k, v in PALETTE.items()},
         "detections_summary": {
             "total_clean_boxes": len(all_final_boxes),
@@ -501,8 +685,10 @@ Output ONLY the raw JSON without markdown backticks or commentary.
             "warnings_boxes": len([b for b in clean_boxes if b["category"] == "WARNINGS"]),
             "general_boxes": len([b for b in clean_boxes if b["category"] == "GENERAL_INFO"])
         },
+        "dietary_logo_detected": logo_info["type"] if logo_info else None,
         "boxes": all_final_boxes,
         "categorized_zones": categorized_text,
+        "qwen_frame_images": [str(enhanced_save_path.resolve())],
         "qwen_7b_prompt": qwen_prompt
     }
 
@@ -510,16 +696,24 @@ Output ONLY the raw JSON without markdown backticks or commentary.
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
+    num_barcodes = sum(1 for b in all_final_boxes if b["category"] == "BARCODE")
+    num_mrp = sum(1 for b in all_final_boxes if b["category"] == "MRP_BATCH")
+    num_marketer = sum(1 for b in all_final_boxes if b["category"] == "MARKETER")
+    num_mfg = sum(1 for b in all_final_boxes if b["category"] == "MANUFACTURER")
+    num_nutri = sum(1 for b in all_final_boxes if b["category"] == "NUTRITION_USP")
+    num_warn = sum(1 for b in all_final_boxes if b["category"] == "WARNINGS")
+    num_gen = sum(1 for b in all_final_boxes if b["category"] == "GENERAL_INFO")
+
     print("\n" + "="*70)
     print("UNIVERSAL PACKAGING ANALYSIS & COLOR ANNOTATION COMPLETE")
     print("="*70)
-    print(f" 🟩 [EMERALD GREEN] Barcodes             : {len(barcode_boxes)} boxes")
-    print(f" 🟪 [VIVID MAGENTA] MRP, Price & Dates   : {payload['detections_summary']['mrp_batch_boxes']} boxes")
-    print(f" 🟦 [SKY BLUE]      Marketer & FSSAI     : {payload['detections_summary']['marketer_boxes']} boxes")
-    print(f" 💠 [CYAN / TEAL]   Manufacturer & Plant : {payload['detections_summary']['manufacturer_boxes']} boxes")
-    print(f" 🟧 [WARM AMBER]    Nutrition & USP      : {payload['detections_summary']['nutrition_boxes']} boxes")
-    print(f" 🟥 [CORAL RED]     Warnings & Cautions  : {payload['detections_summary']['warnings_boxes']} boxes")
-    print(f" 🟨 [OCHRE YELLOW]  General Product Info : {payload['detections_summary']['general_boxes']} boxes")
+    print(f" ⬜ [WHITE]         Barcodes             : {num_barcodes} boxes")
+    print(f" 🟪 [VIVID MAGENTA] MRP, Price & Dates   : {num_mrp} boxes")
+    print(f" 🟦 [SKY BLUE]      Marketer & FSSAI     : {num_marketer} boxes")
+    print(f" 💠 [CYAN / TEAL]   Manufacturer & Plant : {num_mfg} boxes")
+    print(f" 🟧 [WARM AMBER]    Nutrition & USP      : {num_nutri} boxes")
+    print(f" 🟥 [CORAL RED]     Warnings & Cautions  : {num_warn} boxes")
+    print(f" 🟨 [OCHRE YELLOW]  General Product Info : {num_gen} boxes")
     print(f"\n[+] Saved Universal Output : {annotated_save_path.resolve()}")
     print(f"[+] Saved Qwen Payload JSON: {json_path.resolve()}")
     print("="*70)
