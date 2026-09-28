@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../widgets/consumer_affairs_logo.dart';
+import '../widgets/packproof_logo.dart';
 import 'ar_viewfinder_screen.dart';
 import 'capture_screen.dart';
 import 'fifth_schedule_wizard_screen.dart';
@@ -79,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            const ConsumerAffairsLogo(size: 34, isBadge: false),
+            const PackproofLogo(size: 34, isBadge: false),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

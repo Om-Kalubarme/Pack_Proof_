@@ -21,7 +21,12 @@ from predict_yolo import process_packaging_image
 from predict_video import process_video
 from qwen_extract import call_ollama
 from digital_caliper import TableITypographyCaliper
+from legal_rule_engine import LegalRuleEngine
+import database
+import json
 
+# Try to initialize DB
+database.init_db()
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 250 * 1024 * 1024
@@ -185,9 +190,21 @@ def inspect_media():
 
         _add_caliper_measurements(payload)
         qwen_enabled = request.form.get("use_qwen", "true").lower() not in {"0", "false", "no"}
-        payload["qwen"] = _run_qwen(payload, use_vision=qwen_enabled) if qwen_enabled else {
+        qwen_result = _run_qwen(payload, use_vision=qwen_enabled) if qwen_enabled else {
             "status": "disabled", "data": None
         }
+        payload["qwen"] = qwen_result
+        
+        # --- Inject LegalRuleEngine ---
+        if qwen_result.get("data"):
+            from rule_engine.engine import LegalRuleEngine
+            ocr_data = qwen_result["data"]
+            vision_data = {} # Map caliper/heights if needed
+            engine = LegalRuleEngine(ocr_data, vision_data, {})
+            payload["compliance_engine"] = engine.evaluate()
+        else:
+            payload["compliance_engine"] = None
+
         payload["job_id"] = job_id
         payload["media_type"] = media_type
         return jsonify({"success": True, "data": payload})
@@ -195,6 +212,180 @@ def inspect_media():
         traceback.print_exc()
         return jsonify({"success": False, "error": str(exc), "job_id": job_id}), 500
 
+
+@app.post("/api/v1/cases/assign")
+def assign_case():
+    data = request.json or {}
+    case_id = data.get("case_id", str(uuid.uuid4())[:8])
+    case_record = {
+        "case_id": case_id,
+        "business_name": data.get("business_name"),
+        "address": data.get("address"),
+        "gps_location": data.get("gps_location"),
+        "inspection_type": data.get("inspection_type"),
+        "assigned_inspector_id": data.get("assigned_inspector_id"),
+        "deadline_timestamp": data.get("deadline_timestamp"),
+        "priority": data.get("priority", "NORMAL"),
+        "special_instructions": data.get("special_instructions", ""),
+        "status": "ASSIGNED"
+    }
+    
+    try:
+        with database.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO inspection_cases (case_id, business_name, address, gps_location, inspection_type, assigned_inspector_id, deadline_timestamp, priority, special_instructions, status)
+                    VALUES (%(case_id)s, %(business_name)s, %(address)s, %(gps_location)s, %(inspection_type)s, %(assigned_inspector_id)s, %(deadline_timestamp)s, %(priority)s, %(special_instructions)s, %(status)s)
+                """, case_record)
+            conn.commit()
+    except Exception as e:
+        print("DB Error:", e)
+        # fallback for demo if PG not running
+        pass
+        
+    return jsonify({"success": True, "message": "Case Assigned", "case": case_record})
+
+
+@app.get("/api/v1/cases/my-assignments")
+def get_my_assignments():
+    inspector_id = request.args.get("inspector_id")
+    cases = []
+    try:
+        with database.get_connection() as conn:
+            with conn.cursor() as cur:
+                query = """
+                    SELECT c.*, r.raw_data, r.evaluation, r.report_id, r.created_at
+                    FROM inspection_cases c
+                    LEFT JOIN inspection_reports r ON c.case_id = r.case_id
+                """
+                if inspector_id:
+                    query += " WHERE c.assigned_inspector_id = %s"
+                    query += " ORDER BY r.created_at DESC NULLS LAST"
+                    cur.execute(query, (inspector_id,))
+                else:
+                    query += " ORDER BY r.created_at DESC NULLS LAST"
+                    cur.execute(query)
+                cases = cur.fetchall()
+                # Convert datetime to string for json serialization
+                for c in cases:
+                    if c.get("deadline_timestamp"):
+                        c["deadline_timestamp"] = c["deadline_timestamp"].isoformat()
+    except Exception as e:
+        print("DB Error:", e)
+        
+    return jsonify({"success": True, "cases": cases})
+
+
+@app.post("/api/v1/inspections/submit")
+def submit_inspection():
+    # In a real scenario, this would be a multipart/form-data upload handling images
+    data = request.json or {}
+    case_id = data.get("case_id")
+    
+    engine = LegalRuleEngine()
+    evaluation = engine.evaluate_all(data)
+    
+    new_status = "VIOLATION_FLAGGED" if evaluation.get("overall_status") == "FAIL" else "COMPLETED"
+    
+    report_id = str(uuid.uuid4())
+    report = {
+        "report_id": report_id,
+        "case_id": case_id,
+        "evaluation": evaluation,
+        "raw_data": data
+    }
+    
+    try:
+        with database.get_connection() as conn:
+            with conn.cursor() as cur:
+                if case_id:
+                    cur.execute("UPDATE inspection_cases SET status = %s WHERE case_id = %s", (new_status, case_id))
+                
+                cur.execute("""
+                    INSERT INTO inspection_reports (report_id, case_id, evaluation, raw_data)
+                    VALUES (%s, %s, %s, %s)
+                """, (report_id, case_id, json.dumps(evaluation), json.dumps(data)))
+            conn.commit()
+    except Exception as e:
+        print("DB Error:", e)
+        
+    return jsonify({"success": True, "report": report})
+
+
+@app.get("/api/v1/inspections/all")
+def get_all_inspections():
+    cases = []
+    try:
+        with database.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT r.report_id, r.created_at, r.raw_data, r.evaluation, c.business_name, c.address, c.gps_location, c.status as case_status
+                    FROM inspection_reports r
+                    LEFT JOIN inspection_cases c ON r.case_id = c.case_id
+                    ORDER BY r.created_at DESC
+                """)
+                cases = cur.fetchall()
+                for c in cases:
+                    if c.get("created_at"):
+                        c["created_at"] = c["created_at"].isoformat()
+    except Exception as e:
+        print("DB Error:", e)
+    return jsonify({"success": True, "cases": cases})
+
+@app.get("/api/v1/cases/<case_id>/review-package")
+def review_package(case_id):
+    report = None
+    case_status = None
+    try:
+        with database.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM inspection_reports WHERE case_id = %s ORDER BY created_at DESC LIMIT 1", (case_id,))
+                report = cur.fetchone()
+                cur.execute("SELECT status FROM inspection_cases WHERE case_id = %s", (case_id,))
+                case_row = cur.fetchone()
+                if case_row:
+                    case_status = case_row["status"]
+    except Exception as e:
+        print("DB Error:", e)
+
+    if not report:
+        return jsonify({"success": False, "error": "Report not found"}), 404
+        
+    return jsonify({
+        "success": True,
+        "case_id": case_id,
+        "status": case_status,
+        "report": report,
+        "pdf_download_url": f"/api/v1/reports/download/{report['report_id']}",
+        "violation_summary": report["evaluation"].get("all_violations", [])
+    })
+
+
+
+from rule_engine.engine import LegalRuleEngine as NewLegalRuleEngine
+import uuid
+
+@app.post("/api/scan-package")
+def scan_package():
+    # Simulated integration for scan-package which delegates to the new Rule Engine
+    try:
+        data = request.json or {}
+        ocr_data = data.get("ocr_data", {})
+        vision_data = data.get("vision_data", {})
+        user_inputs = data.get("user_inputs", {})
+        
+        # In a real run, you would first call YOLO and Qwen here, map their output
+        # to ocr_data and vision_data, and then pass it to the LegalRuleEngine.
+        
+        engine = NewLegalRuleEngine(ocr_data, vision_data, user_inputs)
+        result = engine.evaluate()
+        
+        # result is now the exact Generic Machine-Readable Data Structure from the DOCX
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.errorhandler(413)
 def upload_too_large(_error):

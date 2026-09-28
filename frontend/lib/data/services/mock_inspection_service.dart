@@ -215,13 +215,29 @@ class MockInspectionService implements InspectionServiceInterface {
       ];
 
       final qwen = visionResult.qwenData;
-      final manufacturer = qwen?['manufacturer_details'];
-      final manufacturerText = manufacturer is Map
-          ? (manufacturer['manufactured_at'] ?? manufacturer['marketed_by'] ?? 'N/A').toString()
-          : 'N/A';
-      final customerCareText = manufacturer is Map
-          ? (manufacturer['customer_care'] ?? 'N/A').toString()
-          : 'N/A';
+      final ceData = visionResult.complianceEngineData;
+      
+      // Parse Universal Compliance Findings (DOCX Format)
+      if (ceData != null && ceData['findings'] != null) {
+        final findings = ceData['findings'] as List;
+
+        for (var f in findings) {
+          if (f is Map) {
+            checks.add(ComplianceCheck(
+              title: f['title']?.toString() ?? 'AI Rule Engine Flag',
+              isCompliant: f['status'] == 'PASS',
+              statusText: f['status']?.toString() ?? 'Violation Detected',
+              ruleReference: (f['rule']?.toString() ?? 'Unknown Rule'),
+              description: (f['detected_issue']?.toString() ?? 'Violation flagged by AI'),
+            ));
+          }
+        }
+      }
+
+      final manufacturerDetails = qwen?['manufacturer_details'] as Map?;
+      final manufacturerText = manufacturerDetails?['manufactured_at'] ?? manufacturerDetails?['marketed_by'] ?? 'N/A';
+      final customerCareText = manufacturerDetails?['customer_care'] ?? 'N/A';
+          
       final qwenValue = (String key, String fallback) {
         final value = qwen?[key];
         if (value == null || value.toString().trim().isEmpty || value.toString().toLowerCase() == 'null') {
@@ -258,6 +274,8 @@ class MockInspectionService implements InspectionServiceInterface {
         return const [];
       }
 
+      final isEngineCompliant = ceData != null && ceData['overall_status'] == 'COMPLIANT ON VERIFIED VISUAL CHECKS';
+
       return InspectionReport(
         caseId: 'LMD-AI-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
         officerName: 'AI Metrology Officer',
@@ -265,24 +283,20 @@ class MockInspectionService implements InspectionServiceInterface {
         timestamp: DateTime.now(),
         businessName: 'Field Inspection (AI Scan)',
         location: 'Current Location',
-        overallStatus: fontCheckCompliant ? InspectionStatus.pass : InspectionStatus.violation,
-        statusSummary: !visionResult.measurementAvailable
-            ? 'SCAN COMPLETE — CALIBRATION REQUIRED'
-            : (visionResult.isCompliant ? 'COMPLIANT (AI)' : 'VIOLATION DETECTED (AI)'),
+        overallStatus: isEngineCompliant ? InspectionStatus.pass : InspectionStatus.violation,
+        statusSummary: ceData != null ? (ceData['overall_status'] ?? 'UNKNOWN') : (isEngineCompliant ? 'COMPLIANT (AI)' : 'VIOLATION DETECTED (AI)'),
         imagePath: imagePaths?.isNotEmpty == true ? imagePaths!.first : null,
         imageBytes: imageBytesList?.isNotEmpty == true ? imageBytesList!.first : null,
         sampleImageTag: sampleTag ?? 'ai_scanned',
-        statutoryCategory: !visionResult.measurementAvailable || visionResult.isCompliant
-            ? 'Compliant Packages'
-            : 'Font Violations (Rule 9)',
+        statutoryCategory: isEngineCompliant ? 'Compliant Packages' : 'Violations',
         productDetails: ProductDetails(
           brandName: qwenValue('brand_name', 'Scanned AI Product'),
           declaredNetQuantity: qwenValue('net_quantity', 'N/A'),
           declaredMrp: qwenValue('mrp_price', 'N/A'),
           unitSalePrice: 'N/A',
           batchMfgDate: qwenValue('manufacturing_date', 'N/A'),
-          manufacturerAddress: manufacturerText,
-          consumerCareDetails: customerCareText == 'null' ? 'N/A' : customerCareText,
+          manufacturerAddress: manufacturerText.toString(),
+          consumerCareDetails: customerCareText.isEmpty ? 'N/A' : customerCareText,
           barcode: qwenValue('barcode', 'N/A'),
           dietaryLogo: qwenValue('dietary_logo', 'N/A'),
           warnings: qwenValue('warnings_cautions', 'N/A'),

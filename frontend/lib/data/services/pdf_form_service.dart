@@ -55,7 +55,7 @@ class PdfFormService {
         pw.Text('THE SEVENTH SCHEDULE', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
         pw.Text(isFormA ? 'Form A' : 'Form B', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
         pw.Text(
-          isFormA ? 'Weight Checking – Data Sheet' : 'Volume/Length Checking – Data Sheet',
+          isFormA ? 'Weight Checking - Data Sheet' : 'Volume/Length Checking - Data Sheet',
           style: const pw.TextStyle(fontSize: 12),
         ),
       ],
@@ -66,7 +66,7 @@ class PdfFormService {
     final isFormA = formType == 'Form A';
     final p = report.productDetails;
     
-    return pw.Table(
+    final mainTable = pw.Table(
       border: pw.TableBorder.all(width: 1),
       children: [
         // Section A
@@ -88,15 +88,14 @@ class PdfFormService {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text('Name of Manufacturer/ Packer', style: const pw.TextStyle(fontSize: 10)),
-                  pw.Text(p.manufacturerAddress, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('Address: ${p.manufacturerAddress}', style: const pw.TextStyle(fontSize: 8)),
-                      pw.Text('Price: ${p.declaredMrp}', style: const pw.TextStyle(fontSize: 8)),
-                      pw.Text('Month/Year: ${p.batchMfgDate}', style: const pw.TextStyle(fontSize: 8)),
-                    ]
-                  )
+                  pw.Text(p.manufacturerAddress.isNotEmpty ? p.manufacturerAddress : report.businessName, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 4),
+                  pw.Text('Brand/Commodity: ${p.brandName}', style: const pw.TextStyle(fontSize: 10)),
+                  pw.Text('Net Quantity: ${p.declaredNetQuantity}', style: const pw.TextStyle(fontSize: 10)),
+                  pw.Text('MRP: ${p.declaredMrp}', style: const pw.TextStyle(fontSize: 10)),
+                  pw.Text('Batch/Mfg Date: ${p.batchMfgDate}', style: const pw.TextStyle(fontSize: 10)),
+                  if (p.consumerCareDetails.isNotEmpty) pw.Text('Consumer Care: ${p.consumerCareDetails}', style: const pw.TextStyle(fontSize: 10)),
+                  if (p.countryOfOrigin.isNotEmpty) pw.Text('Country of Origin: ${p.countryOfOrigin}', style: const pw.TextStyle(fontSize: 10)),
                 ]
               )
             ),
@@ -239,34 +238,62 @@ class PdfFormService {
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Expanded(
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('Signature and name of authorized person', style: const pw.TextStyle(fontSize: 8)),
-                        pw.SizedBox(height: 30),
-                        pw.Text('Designation:', style: const pw.TextStyle(fontSize: 10)),
-                        pw.Text('Name: ${report.officerName}', style: const pw.TextStyle(fontSize: 10)),
-                      ]
-                    )
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Signature and name of authorized person', style: const pw.TextStyle(fontSize: 8)),
+                      pw.SizedBox(height: 30),
+                      pw.Text('Designation:', style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text('Name: ${report.officerName}', style: const pw.TextStyle(fontSize: 10)),
+                    ]
                   ),
-                  pw.Expanded(
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('Signature and name of manufacturer/packer', style: const pw.TextStyle(fontSize: 8)),
-                        pw.SizedBox(height: 30),
-                        pw.Text('Place: ${report.businessName}', style: const pw.TextStyle(fontSize: 10)),
-                      ]
-                    )
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Signature and name of manufacturer/packer', style: const pw.TextStyle(fontSize: 8)),
+                      pw.SizedBox(height: 30),
+                      pw.Text('Place: ${report.businessName}', style: const pw.TextStyle(fontSize: 10)),
+                    ]
                   )
                 ]
               )
             ),
           ]
         ),
+      ]
+    );
+
+    // Section for Evidence Image
+    pw.Widget? evidenceWidget;
+    if (report.imageBytes != null) {
+      evidenceWidget = pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(height: 20),
+          pw.Text('ANNEXURE A: SCANNED EVIDENCE', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 10),
+          pw.Container(
+            height: 300,
+            alignment: pw.Alignment.center,
+            child: pw.Image(pw.MemoryImage(report.imageBytes!)),
+          ),
+          pw.SizedBox(height: 10),
+          pw.Text('Brand: ${p.brandName}', style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('Batch: ${p.batchMfgDate}', style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('Quantity: ${p.declaredNetQuantity}', style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('MRP: ${p.declaredMrp}', style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('Manufacturer Address: ${p.manufacturerAddress}', style: const pw.TextStyle(fontSize: 10)),
+        ]
+      );
+    }
+
+    return pw.Column(
+      children: [
+        mainTable,
+        if (evidenceWidget != null) evidenceWidget,
       ]
     );
   }

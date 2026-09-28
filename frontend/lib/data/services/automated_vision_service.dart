@@ -16,6 +16,7 @@ class AutomatedVisionResult {
   final String targetField;
   final String detectionSummary;
   final Map<String, dynamic>? qwenData;
+  final Map<String, dynamic>? complianceEngineData;
   final int framesAnalyzed;
   final bool isAutoDetected;
   final bool measurementAvailable;
@@ -32,6 +33,7 @@ class AutomatedVisionResult {
     required this.targetField,
     required this.detectionSummary,
     this.qwenData,
+    this.complianceEngineData,
     this.framesAnalyzed = 1,
     this.isAutoDetected = true,
     this.measurementAvailable = false,
@@ -82,6 +84,11 @@ class AutomatedVisionService {
             final qwenResponse = data['qwen'];
             final qwenData = qwenResponse is Map && qwenResponse['status'] == 'ok' && qwenResponse['data'] is Map
               ? Map<String, dynamic>.from(qwenResponse['data'] as Map)
+              : null;
+            
+            final complianceEngineData = data['compliance_engine'];
+            final ceData = complianceEngineData is Map 
+              ? Map<String, dynamic>.from(complianceEngineData as Map) 
               : null;
             final framesAnalyzed = (data['total_frames_analyzed'] as num?)?.toInt() ?? 1;
             final measurementAvailable = data['measurement_available'] == true;
@@ -140,6 +147,7 @@ class AutomatedVisionService {
               targetField: category,
               detectionSummary: '${framesAnalyzed > 1 ? '3D video: $framesAnalyzed distinct sharp frames analyzed. ' : ''}AI Extracted: "$text". ${measurementAvailable ? 'Font height: ${measuredMm}mm (Req: ${requiredMm}mm; $measurementMethod).' : 'Text found, but physical font sizing needs barcode scale or AR depth calibration.'}',
               qwenData: qwenData,
+              complianceEngineData: ceData,
               framesAnalyzed: framesAnalyzed,
               measurementAvailable: measurementAvailable,
               measurementMethod: measurementMethod,

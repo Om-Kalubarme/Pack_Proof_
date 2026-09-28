@@ -277,7 +277,7 @@ class _ComplianceDetailsScreenState extends State<ComplianceDetailsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(c.title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          Text('${c.title} (${c.ruleReference})', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                           Text(
                             c.flaggedDetail ?? c.description,
                             style: TextStyle(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../widgets/consumer_affairs_logo.dart';
+import '../widgets/packproof_logo.dart';
 import 'home_screen.dart';
 
 /// Screen 1: Login Screen
@@ -207,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const Stack(
           alignment: Alignment.center,
           children: [
-            ConsumerAffairsLogo(
+            PackproofLogo(
               size: 92,
               isBadge: true,
               borderWidth: 2.5,

@@ -443,7 +443,7 @@ You MUST output ONLY a valid JSON object. Do not output markdown text outside th
   "brand_name": "string or null",
   "product_name": "string or null",
   "net_quantity": "string or null",
-  "mrp_price": "string or null",
+  "mrp_price": "string or null (e.g. 'Rs 50 incl. of all taxes'. MUST include any tax text if present)",
   "manufacturing_date": "string or null",
   "expiry_best_before": "string or null",
   "batch_lot_number": "string or null",

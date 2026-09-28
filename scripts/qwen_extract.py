@@ -51,7 +51,7 @@ def call_ollama(
         headers={"Content-Type": "application/json"}
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as response:
+        with urllib.request.urlopen(req, timeout=600) as response:
             res = json.loads(response.read().decode("utf-8"))
             return res.get("response", "")
     except urllib.error.URLError as e:

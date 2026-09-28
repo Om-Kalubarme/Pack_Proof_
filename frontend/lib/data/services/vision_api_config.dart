@@ -7,9 +7,8 @@ class VisionApiConfig {
 
   static String get baseUrl {
     if (_override.isNotEmpty) return _override;
-    if (kIsWeb) return 'http://127.0.0.1:5001';
-    if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:5001';
-    return 'http://127.0.0.1:5001';
+    if (defaultTargetPlatform == TargetPlatform.macOS) return 'http://127.0.0.1:5001';
+    return 'http://192.168.43.110:5001';
   }
 
   static Uri get inspectUri => Uri.parse('$baseUrl/api/inspect');

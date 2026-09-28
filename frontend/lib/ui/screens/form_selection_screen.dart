@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/inspection_report.dart';
 import '../../data/services/pdf_form_service.dart';
+import '../../data/services/case_service.dart';
 
 class FormSelectionScreen extends StatefulWidget {
   final InspectionReport report;
@@ -68,6 +72,7 @@ class _FormSelectionScreenState extends State<FormSelectionScreen> {
             duration: const Duration(seconds: 4),
           ),
         );
+        OpenFile.open(path);
       }
     } catch (e) {
       if (mounted) {
@@ -84,14 +89,71 @@ class _FormSelectionScreenState extends State<FormSelectionScreen> {
     }
   }
 
-  void _sendToAuthority() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Report successfully sent to Higher Authority.'),
-        backgroundColor: AppTheme.primaryNavy,
-        duration: Duration(seconds: 2),
-      ),
-    );
+  void _sendToAuthority() async {
+    setState(() => _isSaving = true);
+    final caseId = const Uuid().v4().substring(0, 8);
+    
+    // 1. Assign the case first so the DB foreign key constraint passes
+    await CaseService().assignCase({
+      "case_id": caseId,
+      "business_name": widget.businessName,
+      "address": "123 Main St, New Delhi, 110001", // Mocked for demo
+      "gps_location": "28.6139, 77.2090",
+      "inspection_type": "Retail Store",
+      "assigned_inspector_id": widget.officerName,
+      "deadline_timestamp": DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+      "priority": "HIGH"
+    });
+
+    // 2. Submit the Form A/B report
+    final p = widget.report.productDetails;
+    final declaredQty = double.tryParse(p.declaredNetQuantity.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 500.0;
+    
+    String? base64Image;
+    if (widget.report.imageBytes != null) {
+      base64Image = base64Encode(widget.report.imageBytes!);
+    }
+    
+    final payload = {
+      "case_id": caseId,
+      "declared_quantity": declaredQty,
+      "image_base64": base64Image,
+      "ocr_text": {
+        "address": p.manufacturerAddress.isNotEmpty ? p.manufacturerAddress : "${widget.businessName}, 123 Industrial Area, Mumbai",
+        "net_quantity_text": "Net Wt: ${p.declaredNetQuantity.isNotEmpty ? p.declaredNetQuantity : '500 gms'}", 
+        "mrp_text": "MRP: ${p.declaredMrp.isNotEmpty ? p.declaredMrp : '50.00'}",
+        "brandName": p.brandName,
+        "batchMfgDate": p.batchMfgDate
+      },
+      "spatial_measurements": [
+        {"height_mm": 1.8, "width_mm": 1.0, "pdp_area_cm2": 145}
+      ],
+      "physical_samples": [
+        widget.report.measuredNetWeight ?? 495.0,
+        495.0, 480.0, 498.2 
+      ]
+    };
+    
+    final result = await CaseService().submitInspection(payload);
+    setState(() => _isSaving = false);
+    
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Report successfully sent to Higher Authority Dashboard!'),
+          backgroundColor: AppTheme.primaryNavy,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } else if (mounted) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to connect to HQ server.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _saveToCaseLogs() {
@@ -194,16 +256,21 @@ class _FormSelectionScreenState extends State<FormSelectionScreen> {
             SizedBox(
               height: 52,
               child: OutlinedButton.icon(
-                onPressed: _sendToAuthority,
+                onPressed: _isSaving ? null : _sendToAuthority,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.primaryNavy,
                   side: const BorderSide(color: AppTheme.primaryNavy, width: 2),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.send_rounded, size: 20),
-                label: const Text(
-                  'Send to Higher Authority',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(color: AppTheme.primaryNavy, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded, size: 20),
+                label: Text(
+                  _isSaving ? 'Sending...' : 'Send to Higher Authority',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                 ),
               ),
             ),

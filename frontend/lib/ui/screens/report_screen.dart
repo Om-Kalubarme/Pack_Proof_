@@ -572,22 +572,24 @@ class _ReportScreenState extends State<ReportScreen> {
                 _buildSummaryCard(report),
                 const SizedBox(height: 16),
 
-                // 3. Integrated AR Viewfinder & Font Caliper Inspection Section
+                                // 3. Integrated AR Viewfinder & Font Caliper Inspection Section
                 _buildVisualArCaliperCard(),
                 const SizedBox(height: 16),
 
-                // 4. Extracted Product Details (Structured OCR Fields)
-                _buildExtractedDetailsCard(report),
+                _buildPackageSummary(report),
                 const SizedBox(height: 16),
 
-                // 5. Raw OCR Text Stream (Complete line-by-line inspection)
-                _buildRawOcrStreamCard(report),
+                _buildViolationsSection(report),
+                const SizedBox(height: 16),
+                
+                _buildPhysicalTestsSection(report),
                 const SizedBox(height: 16),
 
-                // 6. Compliance Checklist Card (PCR 2011) - Linked live to Caliper
-                _buildComplianceChecklistCard(report),
+                _buildUnableToVerifySection(report),
+                const SizedBox(height: 16),
+
+                _buildPassedChecksSection(report),
                 const SizedBox(height: 24),
-
                 // 7. Action Buttons at Bottom (Save to Logs, Print/Share PDF)
                 _buildBottomActionButtons(),
                 const SizedBox(height: 24),
@@ -984,231 +986,152 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   /// Extracted Product Details (mocked)
-  Widget _buildExtractedDetailsCard(InspectionReport report) {
-    final d = report.productDetails;
+  
+  Widget _buildSectionHeader(String title, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 8),
+          Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildPackageSummary(InspectionReport report) {
     return Card(
       elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Row(
-              children: [
-                Icon(Icons.inventory_rounded, color: AppTheme.primaryNavy, size: 20),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Extracted Product Details',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: AppTheme.borderLight),
-            const SizedBox(height: 12),
-
-            _buildDetailRow('Brand / Commodity', d.brandName, isBold: true),
-            _buildDetailRow('Declared Net Quantity', d.declaredNetQuantity, isHighlight: true),
-            _buildDetailRow('Declared MRP', '${d.declaredMrp} (Incl. of all taxes)'),
-            _buildDetailRow('Unit Sale Price (USP)', d.unitSalePrice, isHighlight: true),
-            _buildDetailRow('Batch / Mfg Date', d.batchMfgDate),
-            _buildDetailRow('Manufacturer / Packer', d.manufacturerAddress),
-            _buildDetailRow('Consumer Care Redressal', d.consumerCareDetails),
+            _buildSectionHeader("PACKAGE SUMMARY", Icons.inventory_2_outlined, AppTheme.primaryNavy),
+            const Divider(),
+            _buildDetailRow("Brand", report.productDetails.brandName),
+            _buildDetailRow("Net Quantity", report.productDetails.declaredNetQuantity),
+            _buildDetailRow("MRP", report.productDetails.declaredMrp),
+            _buildDetailRow("Packed/Mfg Date", report.productDetails.batchMfgDate),
+            _buildDetailRow("Manufacturer", report.productDetails.manufacturerAddress),
+            _buildDetailRow("Consumer Care", report.productDetails.consumerCareDetails),
+            const Divider(height: 24),
+            _buildSectionHeader("EXTRACTED DECLARATIONS", Icons.document_scanner_outlined, AppTheme.primaryNavy),
+            if (report.productDetails.warnings != "N/A" && report.productDetails.warnings.isNotEmpty)
+              _buildDetailRow("Warnings", report.productDetails.warnings),
+            if (report.productDetails.ingredients != "N/A" && report.productDetails.ingredients.isNotEmpty)
+              _buildDetailRow("Ingredients", report.productDetails.ingredients),
+            if (report.productDetails.allergens.isNotEmpty)
+              _buildDetailRow("Allergens", report.productDetails.allergens.join(", ")),
+            if (report.productDetails.nutritionFacts != "N/A" && report.productDetails.nutritionFacts.isNotEmpty)
+              _buildDetailRow("Nutrition Facts", report.productDetails.nutritionFacts),
+            const SizedBox(height: 8),
+            if (report.productDetails.declarations.isNotEmpty)
+              ...report.productDetails.declarations.map((d) => 
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.grey.withAlpha(20), borderRadius: BorderRadius.circular(6)),
+                  child: Text(""${d['text']}"", style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic)),
+                )
+              ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildDetailRow(String label, String value, {bool isBold = false, bool isHighlight = false}) {
+  
+  Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 4,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 5,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                color: isHighlight ? AppTheme.primaryNavy : AppTheme.textPrimary,
-                fontWeight: (isBold || isHighlight) ? FontWeight.w700 : FontWeight.w600,
-              ),
-            ),
-          ),
+          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontSize: 13))),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14))),
         ],
       ),
     );
   }
 
-  /// Compliance Checklist Card
-  Widget _buildComplianceChecklistCard(InspectionReport report) {
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.rule_folder_rounded, color: AppTheme.primaryNavy, size: 20),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Compliance Checklist (PCR, 2011)',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: AppTheme.borderLight),
-            const SizedBox(height: 10),
-
-            ..._complianceChecks.map((check) => _buildCheckItem(check)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCheckItem(ComplianceCheck check) {
-    final isPass = check.isCompliant;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isPass ? AppTheme.passBackground.withAlpha(90) : AppTheme.violationBackground.withAlpha(90),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isPass ? AppTheme.passGreen.withAlpha(60) : AppTheme.violationRed.withAlpha(80),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildCheckList(List<ComplianceCheck> checks, Color iconColor, IconData defaultIcon) {
+    if (checks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8.0),
+        child: Text("None", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+      );
+    }
+    return Column(
+      children: checks.map((c) => Card(
+        margin: const EdgeInsets.only(bottom: 8.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: iconColor.withAlpha(50))),
+        child: ListTile(
+          leading: Icon(defaultIcon, color: iconColor),
+          title: Text(c.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                isPass ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                color: isPass ? AppTheme.passGreen : AppTheme.violationRed,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  check.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isPass ? AppTheme.passGreen : AppTheme.violationRed,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  check.statusText.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
+              if (c.ruleReference.isNotEmpty) Text("Rule: ${c.ruleReference}", style: TextStyle(color: iconColor, fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text(c.description, style: const TextStyle(fontSize: 13, height: 1.3)),
             ],
           ),
-
-          // Flagged Detail if any (e.g. Found 1.8mm, Required 3.0mm)
-          if (check.flaggedDetail != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppTheme.violationRed.withAlpha(80)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline_rounded, size: 16, color: AppTheme.violationRed),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Flagged: ${check.flaggedDetail}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.violationText,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          if (check.description.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              check.description,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.textSecondary,
-                height: 1.3,
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 4),
-          Text(
-            'Reference: ${check.ruleReference}',
-            style: const TextStyle(
-              fontSize: 11,
-              fontStyle: FontStyle.italic,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
+        ),
+      )).toList(),
     );
   }
 
-  /// Action Buttons at Bottom: "Save to Logs" & "Print / Share PDF"
-  /// Multi-Angle Image Slider Strip (Slide between Front PDP, Back, Side, Flap)
-  Widget _buildAngleSliderStrip() {
+  Widget _buildViolationsSection(InspectionReport report) {
+    final violations = report.complianceChecks.where((c) => !c.isCompliant && c.statusText != "REQUIRES_PHYSICAL_TEST" && c.statusText != "UNABLE_TO_VERIFY").toList();
+    if (violations.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionHeader("VIOLATIONS", Icons.error_outline, AppTheme.violationRed),
+        _buildCheckList(violations, AppTheme.violationRed, Icons.cancel_outlined),
+      ],
+    );
+  }
+
+  Widget _buildPassedChecksSection(InspectionReport report) {
+    final passed = report.complianceChecks.where((c) => c.isCompliant).toList();
+    if (passed.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionHeader("PASSED CHECKS", Icons.check_circle_outline, AppTheme.passGreen),
+        _buildCheckList(passed, AppTheme.passGreen, Icons.check_circle_outline),
+      ],
+    );
+  }
+
+  Widget _buildPhysicalTestsSection(InspectionReport report) {
+    final tests = report.complianceChecks.where((c) => c.statusText == "REQUIRES_PHYSICAL_TEST").toList();
+    if (tests.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionHeader("PHYSICAL TESTS REQUIRED", Icons.science_outlined, AppTheme.accentGold),
+        _buildCheckList(tests, AppTheme.accentGold, Icons.science_outlined),
+      ],
+    );
+  }
+
+  Widget _buildUnableToVerifySection(InspectionReport report) {
+    final tests = report.complianceChecks.where((c) => c.statusText == "UNABLE_TO_VERIFY").toList();
+    if (tests.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSectionHeader("UNABLE TO VERIFY", Icons.help_outline, Colors.orange),
+        _buildCheckList(tests, Colors.orange, Icons.help_outline),
+      ],
+    );
+  }
+
+Widget _buildAngleSliderStrip() {
     final values = PackageViewType.values;
     final currentItem = _views[_activeView];
 

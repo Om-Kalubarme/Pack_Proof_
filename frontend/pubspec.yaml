@@ -40,6 +40,8 @@ dependencies:
   path_provider: ^2.1.6
   crypto: ^3.0.3
   http: ^1.1.0
+  open_file: ^4.0.0
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:
